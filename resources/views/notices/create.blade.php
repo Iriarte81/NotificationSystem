@@ -4,11 +4,11 @@
 	Create a new notice
 <h1 class="page-heading">Prepare a DMCA Notice</h1>
 
-{!! Form::open() !!}
+{!! Form::open(['method' => 'GET', 'action' => 'NoticesController@confirm']) !!}
 
 	<div class="form-group">
 		{!! Form::label('provider_id', 'Who are we sending this to?') !!}
-		{!! Form::select('provider_id', [], null, ['class' => 'form-control']) !!}
+		{!! Form::select('provider_id', $providers, null, ['class' => 'form-control']) !!}
 	</div>
 
 	<div class="form-group">
@@ -28,7 +28,7 @@
 
 	<div class="form-group">
 		{!! Form::label('original_description', 'And finally, it might help to provide some extra information related to this DMCA notice') !!}
-		{!! Form::text('original_description', null, ['class' => 'form-control']) !!}
+		{!! Form::textarea('original_description', null, ['class' => 'form-control']) !!}
 	</div>
 
 	<div class="form-group">
@@ -37,5 +37,6 @@
 
 {!! Form:: close() !!}
 
+@include ('errors.list')
 
 @endsection
