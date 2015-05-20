@@ -2,6 +2,7 @@
 
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
+use Mail;
 
 use Illuminate\Http\Request;
 
@@ -15,6 +16,8 @@ class NoticesController extends Controller {
 	public function __construct()
 	{
 		$this->middleware('auth');
+
+		parent::__construct(); //call the constructor of the parent
 	}
 
 	/**
@@ -24,7 +27,9 @@ class NoticesController extends Controller {
 
 	public function index()
 	{
-		return \Auth::user()->notices;
+		$notices = $this->user->notices;
+
+		return view('notices.index', compact('notices'));
 	}
 
 	/**
@@ -49,10 +54,10 @@ class NoticesController extends Controller {
 	*
 	*/
 
-	public function confirm(Requests\PrepareNoticeRequest $request, \Illuminate\Contracts\Auth\Guard $auth)
+	public function confirm(Requests\PrepareNoticeRequest $request)
 	 {
 
-	 	$template = $this->compileDmcaTemplate($data = $request->all(), $auth);
+	 	$template = $this->compileDmcaTemplate($data = $request->all());
 
 	 	session()->flash('dmca', $data);
 
@@ -69,12 +74,21 @@ class NoticesController extends Controller {
 	public function store(Request $request) 
 	{
 
-		$this->createNotice($request);
+		$notice = $this->createNotice($request);
+
+
+		// And then fire off the email
+		// we do use Mail at the top of the file to import the Mail class
+		\Mail::queue('emails.dmca', compact('notice'), function($message) use ($notice) {
+			$message->from($notice->getOwnerEmail())
+				->to($notice->getRecipientEmail())
+				->subject('DMCA Notice');
+		});
+
 
 		return redirect('notices');
 
-		// And then fire off the email
-
+	
 	}
 
 
@@ -84,11 +98,11 @@ class NoticesController extends Controller {
 	*
 	*/
 
-	public function compileDmcaTemplate($data, \Illuminate\Contracts\Auth\Guard $auth) {
+	public function compileDmcaTemplate($data) {
 
 		$data = $data + [
-		'name' => $auth->user()->name,
-		'email' => $auth->user()->email,
+		'name' => $this->user->name,
+		'email' => $this->user->email,
 		];
 
 		return view()->file(app_path('Http/Templates/dmca.blade.php'), $data);
@@ -107,12 +121,15 @@ class NoticesController extends Controller {
 	{
 
 		// Form data is flashed, get with session()->get('dmca')
-		$data = session()->get('dmca');
+		$notice = session()->get('dmca') + ['template' => $request->input('template')];
+		$notice = $this->user->notices()->create($notice);
 
-		$notice = \App\Notice::open($data)->useTemplate($request->input('template'));
-		
-		\Auth::user()->notices()->save($notice);
+		// Alternatively:
+		//$data = session()->get('dmca');
+		//$notice = \App\Notice::open($data)->useTemplate($request->input('template'));
+		//\Auth::user()->notices()->save($notice);
 
+		return $notice; // notice required to send email
 	}
 
 
