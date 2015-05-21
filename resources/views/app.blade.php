@@ -12,6 +12,7 @@
 	
 </head>
 <body>
+	@include('flash::message')
 	@include('partials.nav')
 
 	<div class="container">

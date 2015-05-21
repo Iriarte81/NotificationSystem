@@ -3,7 +3,7 @@
 use App\Http\Requests;
 use App\Http\Controllers\Controller;
 use Mail;
-
+use App\Notice;
 use Illuminate\Http\Request;
 
 class NoticesController extends Controller {
@@ -79,16 +79,34 @@ class NoticesController extends Controller {
 
 		// And then fire off the email
 		// we do use Mail at the top of the file to import the Mail class
-		\Mail::queue('emails.dmca', compact('notice'), function($message) use ($notice) {
+		\Mail::queue(['text' => 'emails.dmca'], compact('notice'), function($message) use ($notice) {
 			$message->from($notice->getOwnerEmail())
 				->to($notice->getRecipientEmail())
 				->subject('DMCA Notice');
 		});
 
+		flash('Your DMCA notice has been delivered');
 
 		return redirect('notices');
 
 	
+	}
+
+	/**
+	*
+	* method called when patch request sent from form
+	*/
+
+
+	public function update($noticeId, Request $request)
+	{
+		$isRemoved = $request->has('content_removed');
+	
+		Notice::findOrFail($noticeId)
+		->update(['content_removed' => $isRemoved]);
+
+		return redirect()->back();
+
 	}
 
 
